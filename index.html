@@ -103,6 +103,7 @@
     .ficha-estado { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; padding: 5px 14px; border-radius: 20px; }
     .estado-aprobado { background: #ffffff; color: var(--sucre-blue); }
     .estado-pendiente { background: rgba(255,235,59,0.25); color: #ffeb3b; border: 1px solid rgba(255,235,59,0.5); }
+    .estado-nocumple { background: rgba(220,50,50,0.2); color: #ff6b6b; border: 1px solid rgba(220,50,50,0.5); }
 
     .ficha-body { padding: 28px 32px; background: var(--sucre-blue); }
     .ficha-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 28px; }
@@ -121,6 +122,12 @@
     .ficha-pendiente-aviso .aviso-icon { font-size: 1.2rem; flex-shrink: 0; }
     .ficha-pendiente-aviso p { font-size: 0.82rem; color: #ffffff; line-height: 1.5; }
     .ficha-pendiente-aviso strong { font-weight: 700; color: #ffeb3b; }
+
+    /* Aviso no cumple */
+    .ficha-nocumple-aviso { background: rgba(220,50,50,0.15); border: 1px solid rgba(220,50,50,0.4); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 12px; }
+    .ficha-nocumple-aviso .aviso-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .ficha-nocumple-aviso p { font-size: 0.82rem; color: #ffffff; line-height: 1.5; }
+    .ficha-nocumple-aviso strong { font-weight: 700; color: #ff6b6b; }
 
     /* Formulario edición */
     .ficha-form { border-top: 1px solid rgba(255,255,255,0.15); padding-top: 24px; }
@@ -310,9 +317,14 @@
           <!-- Sección pendiente: aviso + formulario -->
           <div id="ficha-pendiente-section" style="display:none;">
 
-            <div class="ficha-pendiente-aviso">
+            <div class="ficha-pendiente-aviso" id="aviso-pendiente">
               <span class="aviso-icon">⏳</span>
               <p>Tu registro está <strong>pendiente de revisión</strong> por el staff. Si necesitas corregir algún dato, puedes editarlo a continuación. Al guardar, tu registro volverá a revisión.</p>
+            </div>
+
+            <div class="ficha-nocumple-aviso" id="aviso-nocumple" style="display:none;">
+              <span class="aviso-icon">✖</span>
+              <p>Tu registro <strong>no cumple con los requisitos</strong> de la competencia. Por favor revisa y corrige la información a continuación, o contacta al staff en <a href="mailto:sucrebotclub@tecnologicosucre.edu.ec">sucrebotclub@tecnologicosucre.edu.ec</a></p>
             </div>
 
             <div class="ficha-form">
@@ -469,7 +481,9 @@
 
   // ── RENDER FICHA ──
   function renderFicha(p) {
-    const aprobado = p.aprobado === true || p.aprobado === 'true' || p.aprobado === 1;
+    // ✅ CORRECCIÓN: Reconoce 3 estados
+    const esAprobado  = p.aprobado === true || p.aprobado === 'true' || p.aprobado === 1;
+    const esNoCumple  = p.aprobado === 'nocumple';
 
     document.getElementById('f-robot').textContent       = p.robot       || '—';
     document.getElementById('f-categoria').textContent   = p.categoria   || '—';
@@ -480,18 +494,25 @@
     document.getElementById('f-contacto').textContent    = p.contacto    || '—';
 
     const badge = document.getElementById('f-estado-badge');
-    if (aprobado) {
+    
+    // ✅ CORRECCIÓN: Manejo de 3 estados
+    if (esAprobado) {
       badge.className   = 'ficha-estado estado-aprobado';
       badge.textContent = '✔ Aprobado';
+    } else if (esNoCumple) {
+      badge.className   = 'ficha-estado estado-nocumple';
+      badge.textContent = '✖ No cumple requisitos';
     } else {
       badge.className   = 'ficha-estado estado-pendiente';
       badge.textContent = '⏳ Pendiente de aprobación';
     }
 
-    const qrSection       = document.getElementById('ficha-qr-section');
-    const pendienteSection = document.getElementById('ficha-pendiente-section');
+    const qrSection         = document.getElementById('ficha-qr-section');
+    const pendienteSection  = document.getElementById('ficha-pendiente-section');
+    const avisoPendiente    = document.getElementById('aviso-pendiente');
+    const avisoNoCumple     = document.getElementById('aviso-nocumple');
 
-    if (aprobado) {
+    if (esAprobado) {
       // Mostrar QR, ocultar formulario
       const textoQR = 'SUCREBOT 2026 | Robot: ' + p.robot
         + ' | Categoria: '   + p.categoria
@@ -504,9 +525,19 @@
       qrSection.style.display        = 'block';
       pendienteSection.style.display = 'none';
     } else {
-      // Mostrar formulario prellenado, ocultar QR
+      // Mostrar formulario prellenado (para pendiente o nocumple), ocultar QR
       qrSection.style.display        = 'none';
       pendienteSection.style.display = 'block';
+
+      // ✅ Mostrar el aviso correcto según el estado
+      if (esNoCumple) {
+        avisoPendiente.style.display = 'none';
+        avisoNoCumple.style.display  = 'flex';
+      } else {
+        avisoPendiente.style.display = 'flex';
+        avisoNoCumple.style.display  = 'none';
+      }
+
       document.getElementById('edit-robot').value       = p.robot       || '';
       document.getElementById('edit-categoria').value   = p.categoria   || '';
       document.getElementById('edit-institucion').value = p.institucion  || '';
